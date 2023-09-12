@@ -18,7 +18,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"text/template"
 	"unicode"
@@ -50,12 +50,14 @@ type licenseData struct {
 // optional templateFile. If templateFile is provided, the license is read
 // from the specified file. Otherwise, a template is loaded for the specified
 // license, if recognized.
-func fetchTemplate(license string, templateFile string, spdx spdxFlag) (string, error) {
+func fetchTemplate(license string, templateFile string, spdx spdxFlag, copyrightonly bool) (string, error) {
 	var t string
-	if spdx == spdxOnly {
+	if copyrightonly {
+		t = tmplCopyright
+	} else if spdx == spdxOnly {
 		t = tmplSPDX
 	} else if templateFile != "" {
-		d, err := ioutil.ReadFile(templateFile)
+		d, err := os.ReadFile(templateFile)
 		if err != nil {
 			return "", fmt.Errorf("license file: %w", err)
 		}
@@ -64,6 +66,7 @@ func fetchTemplate(license string, templateFile string, spdx spdxFlag) (string, 
 	} else {
 		t = licenseTemplate[license]
 		if t == "" {
+
 			if spdx == spdxOn {
 				// unknown license, but SPDX headers requested
 				t = tmplSPDX
@@ -75,7 +78,6 @@ func fetchTemplate(license string, templateFile string, spdx spdxFlag) (string, 
 			t = t + spdxSuffix
 		}
 	}
-
 	return t, nil
 }
 
@@ -146,3 +148,5 @@ const tmplSPDX = `{{ if .Holder }}Copyright{{ if .Year }} {{.Year}}{{ end }} {{.
 {{ end }}SPDX-License-Identifier: {{.SPDXID}}`
 
 const spdxSuffix = "\n\nSPDX-License-Identifier: {{.SPDXID}}"
+
+const tmplCopyright = `Copyright (c){{ if .Year }} {{.Year}}{{ end }} {{.Holder}} All rights reserved.`

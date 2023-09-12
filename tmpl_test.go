@@ -31,12 +31,13 @@ func init() {
 
 func TestFetchTemplate(t *testing.T) {
 	tests := []struct {
-		description  string   // test case description
-		license      string   // license passed to fetchTemplate
-		templateFile string   // templatefile passed to fetchTemplate
-		spdx         spdxFlag // spdx value passed to fetchTemplate
-		wantTemplate string   // expected returned template
-		wantErr      error    // expected returned error
+		description   string   // test case description
+		license       string   // license passed to fetchTemplate
+		templateFile  string   // templatefile passed to fetchTemplate
+		spdx          spdxFlag // spdx value passed to fetchTemplate
+		copyrightonly bool     // copyrightonly passed to fetchTemplate
+		wantTemplate  string   // expected returned template
+		wantErr       error    // expected returned error
 	}{
 		// custom template files
 		{
@@ -44,6 +45,7 @@ func TestFetchTemplate(t *testing.T) {
 			"",
 			"/does/not/exist",
 			spdxOff,
+			false,
 			"",
 			os.ErrNotExist,
 		},
@@ -52,6 +54,7 @@ func TestFetchTemplate(t *testing.T) {
 			"",
 			"testdata/custom.tpl",
 			spdxOff,
+			false,
 			"Copyright {{.Year}} {{.Holder}}\n\nCustom License Template\n",
 			nil,
 		},
@@ -61,6 +64,7 @@ func TestFetchTemplate(t *testing.T) {
 			"unknown",
 			"",
 			spdxOff,
+			false,
 			"",
 			errors.New(`unknown license: "unknown". Include the '-s' flag to request SPDX style headers using this license`),
 		},
@@ -71,6 +75,7 @@ func TestFetchTemplate(t *testing.T) {
 			"Apache-2.0",
 			"",
 			spdxOff,
+			false,
 			tmplApache,
 			nil,
 		},
@@ -79,6 +84,7 @@ func TestFetchTemplate(t *testing.T) {
 			"MIT",
 			"",
 			spdxOff,
+			false,
 			tmplMIT,
 			nil,
 		},
@@ -87,6 +93,7 @@ func TestFetchTemplate(t *testing.T) {
 			"bsd",
 			"",
 			spdxOff,
+			false,
 			tmplBSD,
 			nil,
 		},
@@ -95,6 +102,7 @@ func TestFetchTemplate(t *testing.T) {
 			"MPL-2.0",
 			"",
 			spdxOff,
+			false,
 			tmplMPL,
 			nil,
 		},
@@ -105,6 +113,7 @@ func TestFetchTemplate(t *testing.T) {
 			"Apache-2.0",
 			"",
 			spdxOn,
+			false,
 			tmplApache + spdxSuffix,
 			nil,
 		},
@@ -113,6 +122,7 @@ func TestFetchTemplate(t *testing.T) {
 			"Apache-2.0",
 			"",
 			spdxOnly,
+			false,
 			tmplSPDX,
 			nil,
 		},
@@ -121,14 +131,24 @@ func TestFetchTemplate(t *testing.T) {
 			"unknown",
 			"",
 			spdxOnly,
+			false,
 			tmplSPDX,
+			nil,
+		},
+		{
+			"copyright only",
+			"unknown",
+			"",
+			spdxOff,
+			true,
+			tmplCopyright,
 			nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.description, func(t *testing.T) {
-			tpl, err := fetchTemplate(tt.license, tt.templateFile, tt.spdx)
+			tpl, err := fetchTemplate(tt.license, tt.templateFile, tt.spdx, tt.copyrightonly)
 			if tt.wantErr != nil && (err == nil || (!errors.Is(err, tt.wantErr) && err.Error() != tt.wantErr.Error())) {
 				t.Fatalf("fetchTemplate(%q, %q) returned error: %#v, want %#v", tt.license, tt.templateFile, err, tt.wantErr)
 			}
